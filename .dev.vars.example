@@ -1,0 +1,3 @@
+# Worker 로컬 시크릿. `.dev.vars.development` 로 복사해 값을 채운다 (커밋 금지).
+# 운영 값은 `wrangler secret put <NAME>` 으로 등록한다.
+# EXAMPLE_API_KEY=xxxx

@@ -1,0 +1,2 @@
+# 도구가 관리하는 파일. .gitignore 대상은 Prettier 가 자동으로 건너뛴다.
+worker-configuration.d.ts

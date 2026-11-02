@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bt-cloudflare-workers",
+  "main": "./src/worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // 비밀이 아닌 설정만 둔다. 시크릿은 `wrangler secret put <NAME>` 으로 등록한다.
+  "vars": {
+    "ENVIRONMENT": "production",
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1,
+    },
+  },
+  "upload_source_maps": true,
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    // 지정하지 않으면 브라우저가 주소창으로 연 /api/* 에 Worker 대신 SPA 의 HTML 이 응답한다.
+    "run_worker_first": ["/api/*"],
+  },
+  "env": {
+    // `vars` 와 바인딩은 env 로 상속되지 않는다. 최상위에 추가하면 여기에도 추가한다.
+    "development": {
+      "vars": {
+        "ENVIRONMENT": "development",
+      },
+    },
+  },
+}

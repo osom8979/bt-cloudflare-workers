@@ -1,0 +1,24 @@
+### claude-code ###
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+.claude/worktrees/
+.mcp.json
+
+### Environment variables ###
+.env*
+!.env*.example
+.dev.vars*
+!.dev.vars*.example
+
+### Local Node (n-exec) ###
+.n
+.node
+
+### Build ###
+node_modules/
+dist/
+.wrangler/
+coverage/
+*.tsbuildinfo
+*.log
+.DS_Store
