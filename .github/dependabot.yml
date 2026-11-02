@@ -1,0 +1,20 @@
+# 매주 의존성 PR 을 만든다. CI(check.yml)가 통과하면 병합한다.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # minor·patch 는 하나의 PR 로 묶는다. major 는 따로 올라온다.
+      npm-minor-patch:
+        patterns: ['*']
+        update-types: [minor, patch]
+    ignore:
+      # typescript-eslint 가 아직 지원하지 않는다. README 의 "버전 제약"을 본다.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

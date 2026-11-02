@@ -20,7 +20,8 @@
 #
 # `e2e` 는 `build` 가 만든 dist/ 를 `vite preview` 로 실제 Workers 런타임에서 실행하고
 # HTTP 로 확인한다. 브라우저를 쓰는 테스트가 아니다. 브라우저 동작을 검증하려면
-# Playwright 를 도입해 단계를 추가한다.
+# Playwright 를 도입해 단계를 추가한다. 포트를 이미 다른 프로세스가 쓰고 있으면 서버를
+# 시작하지 않고 실패한다. 그대로 진행하면 다른 프로젝트의 서버를 검사해 통과로 보고한다.
 #
 # 단계 출력은 화면과 로그 파일에 함께 남는다. 로그 디렉터리는 CHECK_LOG_DIR 로
 # 정하고, 없으면 임시 디렉터리를 만든다.
@@ -168,8 +169,18 @@ e2e_expect() {
     return 1
 }
 
+# 포트에 연결되면 사용 중이다. bash 의 /dev/tcp 를 쓰므로 별도 도구가 필요 없다.
+port_in_use() {
+    (exec 3<> "/dev/tcp/127.0.0.1/$1") 2> /dev/null
+}
+
 e2e_smoke() {
     local server failed=0 i asset
+
+    if port_in_use "$E2E_PORT"; then
+        echo "포트 $E2E_PORT 를 이미 다른 프로세스가 사용하고 있습니다. 그 서버를 검사하게 되므로 중단합니다."
+        return 1
+    fi
 
     # n-exec 아래의 프로세스까지 한 번에 종료하도록 별도 프로세스 그룹으로 실행한다.
     # 남은 프로세스가 출력 파이프를 잡고 있으면 이 단계가 끝나지 않는다.

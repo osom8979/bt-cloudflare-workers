@@ -1,0 +1,30 @@
+# 전체 점검. `./check-all.sh` 가 단계와 순서를 정한다. 배포는 하지 않으므로 시크릿이 필요 없다.
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
+      # GitHub Actions 는 CI=true 를 두므로 install 단계가 항상 실행된다.
+      - run: ./check-all.sh
+        env:
+          WRANGLER_SEND_METRICS: 'false'

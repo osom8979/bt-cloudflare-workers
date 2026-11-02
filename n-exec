@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+#
+# 저장소의 Node 환경에서 명령을 실행한다. 첫 실행 때 `n` 을 받아 `.node-version` 의 Node 를
+# `.node/` 에 설치한다. `./node`·`./npm`·`./npx` 래퍼의 기반이다.
+#
+# `n` 은 커밋과 sha256 으로 고정한다. 매 실행마다 해시를 확인하고, 없거나 다르면 다시 받는다.
+# 올릴 때는 두 값을 함께 바꾼다:
+#   curl -fsSL https://raw.githubusercontent.com/tj/n/<커밋>/bin/n | sha256sum
+#
+# 루트에 `.env` 가 있으면 환경 변수로 읽는다. 빈 줄과 `#` 주석은 건너뛴다.
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" || exit; pwd)
 
@@ -9,16 +18,35 @@ NODE_EXE="$N_PREFIX/bin/node"
 NODE_VERSION=$(<"$ROOT_DIR/.node-version")
 ENV_EXPORT_REGEX='^[ \t]*export[ \t]*[_a-zA-Z0-9]+=.*$'
 
-if [[ ! -d "$N_DIR" ]]; then
-    mkdir -vp "$N_DIR"
-fi
-if [[ ! -x "$N_EXE" ]]; then
-    curl -L "https://raw.githubusercontent.com/tj/n/master/bin/n" -o "$N_EXE"
-    chmod +x "$N_EXE"
-fi
-if [[ ! -x "$N_EXE" ]]; then
-    echo "Could not find executable n command on path '$N_EXE'"
-    exit 1
+# tj/n v11.0.0
+N_COMMIT=f2fa928b6abc85c35455a929246330729e0febc3
+N_SHA256=01b945705082179c7786175555d3b8fa0908ede6feb92353837a6bf7ca4c73df
+N_URL="https://raw.githubusercontent.com/tj/n/$N_COMMIT/bin/n"
+
+sha256_of() {
+    if command -v sha256sum > /dev/null 2>&1; then
+        sha256sum "$1" | cut -d' ' -f1
+    else
+        shasum -a 256 "$1" | cut -d' ' -f1
+    fi
+}
+
+if [[ ! -f "$N_EXE" || "$(sha256_of "$N_EXE")" != "$N_SHA256" ]]; then
+    mkdir -p "$N_DIR"
+    # `-f` 가 없으면 404 본문이 저장되어 `.n` 을 지울 때까지 계속 실패한다.
+    if ! curl -fsSL "$N_URL" -o "$N_EXE.tmp"; then
+        echo "Could not download n from '$N_URL'" 1>&2
+        rm -f "$N_EXE.tmp"
+        exit 1
+    fi
+    ACTUAL_SHA256=$(sha256_of "$N_EXE.tmp")
+    if [[ "$ACTUAL_SHA256" != "$N_SHA256" ]]; then
+        echo "n checksum mismatch: expected $N_SHA256, got $ACTUAL_SHA256" 1>&2
+        rm -f "$N_EXE.tmp"
+        exit 1
+    fi
+    chmod +x "$N_EXE.tmp"
+    mv -f "$N_EXE.tmp" "$N_EXE"
 fi
 
 if [[ ! -x "$NODE_EXE" ]]; then
@@ -34,9 +62,13 @@ if [[ ! -x "$NODE_EXE" ]]; then
     fi
 fi
 
-# Read `.env` variables
+# 빈 줄과 주석을 건너뛰지 않으면 인자 없는 `export` 가 실행되어 환경 변수 전체가 출력된다.
+# 마지막 줄에 줄바꿈이 없어도 읽는다.
 if [[ -f "$ROOT_DIR/.env" ]]; then
-    while read -r line; do
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$line" =~ ^[[:space:]]*(#|$) ]]; then
+            continue
+        fi
         if echo "$line" | grep -q -E "$ENV_EXPORT_REGEX"; then
             eval "$line"
         else

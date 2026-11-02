@@ -14,6 +14,8 @@ export default defineConfig(
     languageOptions: {
       ecmaVersion: 2022,
       globals: globals.browser,
+      // 타입 정보를 쓰는 규칙(no-floating-promises)에 필요하다. 각 파일이 tsconfig 에 속해야 한다.
+      parserOptions: {projectService: true, tsconfigRootDir: import.meta.dirname},
     },
     plugins: {
       'import-x': importX,
@@ -27,6 +29,8 @@ export default defineConfig(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Workers 는 응답 뒤 기다리지 않은 Promise 를 버린다. await 하거나 ctx.waitUntil 에 넘긴다.
+      '@typescript-eslint/no-floating-promises': 'error',
       'react-refresh/only-export-components': ['warn', {allowConstantExport: true}],
       '@typescript-eslint/no-unused-vars': [
         'error',
